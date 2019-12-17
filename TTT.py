@@ -15,10 +15,9 @@ import numpy as np
 import random
 BOARD_HEIGHT = 3
 BOARD_WIDTH = 3	
+cache = {}
 
 def init_game():
-	
-	global board
 	turn_count = 1
 	board = []
 	for x in range(0,BOARD_HEIGHT):
@@ -26,21 +25,20 @@ def init_game():
 		for y in range(0, BOARD_WIDTH):
 			board_row.append(0)
 		board.append(board_row)
-	render()
+	render(board)
 	(p1, p2) = num_players()
-	while(((check_win(board)) == None) and (draw_check(board) != True)):
+	while(((check_win(board)) == False) and (draw_check(board) == False)):
 		if (turn_count % 2 == 0):
 			current_player = 2
 		else:
 			current_player = 1
-		get_move(current_player, p1, p2)
+		get_move(current_player, p1, p2, board)
 		turn_count += 1
 	return()
 
 
 
-def get_move(current_player, player_1, player_2):
-	global board
+def get_move(current_player, player_1, player_2, board):
 	player_functions = [human_player, get_rand_AI_move, get_winning_AI_move, get_improved_AI, ultimate_AI]
 	print("Player " + str(current_player) +", your move!")
 	if (current_player == 1):
@@ -49,8 +47,8 @@ def get_move(current_player, player_1, player_2):
 		(x,y) = player_functions[player_2](board, current_player)
 	if(make_move(x,y,current_player, board) == False):
 		get_move(current_player, player_1, player_2)
-	render()
-	if(check_win(board) != None):
+	render(board)
+	if(check_win(board)):
 		print("Player " + str(current_player) +" Wins! Fuckin great for you. Initiating Taint_Poke.EXE")
 		play_again = input("Would you like to play again? Enter Y to start new game or any other character to exit:")
 		if((play_again == "y") or (play_again == "Y")):
@@ -102,8 +100,8 @@ def check_win(board):
 		return(True)
 	else:
 		return(False)
-def render():
-	global board
+
+def render(board):
 	print("   0   1   2")
 	render_board = []
 	for x,row in enumerate(board):
@@ -156,7 +154,7 @@ def get_winning_AI_move(board, current_player):
 		for y,col in enumerate(row):
 			if(AI_board[x][y] == 0):
 				AI_board[x][y] = current_player
-				if(check_win(AI_board) == current_player):
+				if(check_win(AI_board)):
 					return(x,y)
 				else:
 					AI_board[x][y] = 0				
@@ -169,15 +167,12 @@ def get_improved_AI(board, current_player):
 		for y, col in enumerate(row):
 			if(AI_board[x][y] == 0):
 				(AI_board[x][y]) = current_player
-				if(check_win(AI_board) == current_player):
+				if(check_win(AI_board)):
 					print("Found a winning move!")
 					print(x,y)
 					return(x,y)
-				if(current_player == 1):
-					AI_board[x][y] = 2
-				elif(current_player == 2):
-					AI_board[x][y] = 1
-				if(check_win(AI_board) == get_opponent(current_player)):
+				AI_board[x][y] = get_opponent(current_player)
+				if(check_win(AI_board)):
 					print("Blocked a winning move!")
 					print(x,y)
 					return(x,y)
@@ -193,7 +188,6 @@ def get_minimax_score(board_state, move_player, optimize_player):
 	#check through all legal open spaces for a terminal state
 	#assign -10 if O wins, +10 if X wins
 	#if open space is not a terminal state, reursively iterate through all possible moves from that state
-	print(check_win(board_state))
 	if check_win(board_state):
 		if (move_player == optimize_player):
 			return -10
@@ -207,10 +201,14 @@ def get_minimax_score(board_state, move_player, optimize_player):
 		AI_board = make_AI_board(board_state)
 		(AI_x, AI_y) = move
 		make_move(AI_x, AI_y, move_player, AI_board)
-		opponent = get_opponent(move_player)
-		score = get_minimax_score(AI_board, opponent, optimize_player)
+		board_key = str(AI_board)
+		if board_key not in cache:
+			opponent = get_opponent(move_player)
+			score = get_minimax_score(AI_board, opponent, optimize_player)
+			cache[board_key] = score
+		else:
+			score = cache[board_key]
 		scores.append(score)
-	print(legal_moves, scores, move_player)
 	if move_player == optimize_player:
 		return (max(scores))
 	else:
@@ -233,7 +231,6 @@ def ultimate_AI(board, current_player):
 		if ((AI_Max_Score == None) or (score > AI_Max_Score)):
 			AI_Max_Score = score
 			AI_move = move
-	print(scores)
 	(x,y) = AI_move
 	return(x,y)
 
@@ -265,8 +262,9 @@ def get_opponent(current_player):
 		return 1
 
 
-test_board = [[1,2,1],
-			  [0,2,0],
-			  [0,0,0]]
-move = ultimate_AI(test_board, 1)
-print(move)
+#test_board = [[1,2,1],
+#			  [0,2,0],
+#			  [0,0,0]]
+#move = ultimate_AI(test_board, 1)
+#print(move)
+init_game()
